@@ -4,6 +4,7 @@ import Search from './components/Search'
 import { Spinner } from 'flowbite-react'
 import MovieCard from './components/MovieCard'
 import { getTrendingMovies, updateSearchCount } from './appwrite'
+import type { Movie, MovieListResponse, SearchMetric } from './types'
 
 const API_BASE_URL = 'https://api.themoviedb.org/3'
 
@@ -18,8 +19,8 @@ const App = () => {
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
 
-  const [movieList, setMovieList] = useState([])
-  const [trendingMovies, setTrendingMovies] = useState([])
+  const [movieList, setMovieList] = useState<Movie[]>([])
+  const [trendingMovies, setTrendingMovies] = useState<SearchMetric[]>([])
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -28,6 +29,7 @@ const App = () => {
 
   const fetchMovies = async (query = '') => {
     setIsLoading(true)
+    setErrorMessage(null)
 
     try {
       const endpoint = query
@@ -39,18 +41,13 @@ const App = () => {
         throw new Error('Failed to fetch movies')
       }
 
-      const data = await response.json()
+      const data: MovieListResponse = await response.json()
+      const results = data.results ?? []
 
-      if (data.Response === 'False') {
-        setErrorMessage(data.Error || 'Failed to fetch movies')
-        setMovieList([])
-        return
-      }
+      setMovieList(results)
 
-      setMovieList(data.results || [])
-
-      if (query && data.results.length > 0) {
-        await updateSearchCount(query, data.results[0])
+      if (query && results.length > 0) {
+        await updateSearchCount(query, results[0])
       }
     } catch (error) {
       console.error('Error fetching movies:', error)
@@ -61,13 +58,8 @@ const App = () => {
   }
 
   const loadTrendingMovies = async () => {
-    try {
-      const movies = await getTrendingMovies()
-
-      setTrendingMovies(movies)
-    } catch (error) {
-      console.error(`Error fetching trending movies: ${error}`)
-    }
+    const movies = await getTrendingMovies()
+    setTrendingMovies(movies)
   }
 
   useEffect(() => {
@@ -94,7 +86,7 @@ const App = () => {
           <Search searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
         </header>
 
-        {trendingMovies.length && (
+        {trendingMovies.length > 0 && (
           <section className="trending">
             <h2>Trending Movies</h2>
 
@@ -102,7 +94,7 @@ const App = () => {
               {trendingMovies.map((movie, index) => (
                 <li key={movie.$id}>
                   <p>{index + 1}</p>
-                  <img src={movie.poster_url} alt={movie.title} />
+                  <img src={movie.poster_url} alt={movie.searchTerm} />
                 </li>
               ))}
             </ul>

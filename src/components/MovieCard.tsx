@@ -1,6 +1,12 @@
+import type { Movie } from '../types'
+
+type Props = {
+  movie: Movie
+}
+
 const MovieCard = ({
   movie: { title, vote_average, poster_path, release_date, original_language },
-}) => {
+}: Props) => {
   return (
     <div className="movie-card">
       <img
